@@ -1,0 +1,49 @@
+﻿
+#pragma kernel GPUTreeCulling
+#pragma enable_d3d11_debug_symbols
+
+StructuredBuffer<float4> positionBuffer;
+RWStructuredBuffer<int> bufferWithArgs;
+float3 cameraPosition;
+float3 cameraDirection;
+float cameraHalfFov;
+float4x4 matrix_VP;
+uint count;
+int lodCount;
+float4 LODDistances;
+
+RWTexture2DArray<float4> visibleTexture;
+uint textureWidth ;
+
+inline uint2 GetUV(uint index, uint width)
+{
+    return uint2(index % width, index / width);
+}
+
+[numthreads(64, 1, 1)]
+void GPUTreeCulling(uint3 id : SV_DispatchThreadID)
+{
+    if (id.x >= count)
+        return;
+    uint index = id.x;
+    float4 itemPos = positionBuffer[index];
+    
+    float4 clipPos = mul(matrix_VP, float4(itemPos - cameraDirection * 0.2, 1));
+    if (max(abs(clipPos.x), abs(clipPos.y)) > clipPos.w + 0.7)
+        return;
+    
+    int lod = 0;
+    float Distance = distance(itemPos, cameraPosition);
+    bool4 lods = Distance > LODDistances;
+    for (int i = 1; i < lodCount; i++)
+    {
+        if (lods[i])
+            lod = i;
+    }
+    uint currentIndex;
+    InterlockedAdd(bufferWithArgs[1 + lod * 5], 1, currentIndex);
+
+    uint2 uv = GetUV(currentIndex, textureWidth);
+    uint3 coord = uint3(uv, lod);
+    visibleTexture[coord] = itemPos;
+}
