@@ -32,10 +32,10 @@ public class GPUTreeInstance
     ComputeBuffer bufferWithArgs;
     uint[] args;
     int ShaderId;
+    int count;
 
     Bounds bounds = new Bounds(Vector3.zero, Vector3.one * 1000);
 
-    int count;
 
     internal GPUTreeInstance(TreeInfo info, ComputeShader cs)
     {
@@ -45,7 +45,6 @@ public class GPUTreeInstance
         shader = ComputeShader.Instantiate<ComputeShader>(cs);
         datas = new List<TreeData>();
         count = info.positions.Length;
-
 
         int w = (count >= 1024) ? 1024 : (count % 1024);
         int h = count / 1024;
@@ -99,7 +98,6 @@ public class GPUTreeInstance
 
     public void Run()
     {
-
         shader.SetVector(cameraPositionId, Camera.main.transform.position);
         shader.SetVector(cameraDirectionId, Camera.main.transform.forward);
         shader.SetFloat(cameraHalfFovId, Camera.main.fieldOfView / 2);
@@ -120,6 +118,7 @@ public class GPUTreeInstance
             Graphics.DrawMeshInstancedIndirect(data.mesh, 0, data.materials[0], bounds, bufferWithArgs, i * 5 * 4, data.mpb, ShadowCastingMode.On, false);
         }
     }
+
     public void Destory()
     {
         if (datas != null)
